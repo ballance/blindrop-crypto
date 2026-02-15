@@ -1,0 +1,46 @@
+{
+  "name": "blindrop-crypto",
+  "version": "1.0.0",
+  "description": "Zero-knowledge encryption utilities and atomic operation patterns for secure secret sharing",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "lint": "eslint src/",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "encryption",
+    "aes-256-gcm",
+    "zero-knowledge",
+    "secret-sharing",
+    "cryptography",
+    "security",
+    "redis",
+    "atomic",
+    "lua"
+  ],
+  "author": "BastionForge",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bastionforge/blindrop-crypto"
+  },
+  "homepage": "https://blindrop.com",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
