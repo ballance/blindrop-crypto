@@ -10,6 +10,8 @@ Extracted from [Blindrop](https://blindrop.com) - a zero-knowledge secret sharin
 - **Zero-Knowledge Architecture** - Keys never touch the server
 - **Atomic Redis Operations** - Lua scripts to prevent race conditions
 - **TypeScript First** - Full type definitions included
+- **Zero Runtime Dependencies** - Only Web Crypto API (built into Node 18+ and browsers)
+- **Typed Error Handling** - Specific error classes for precise error handling
 
 ## Installation
 
@@ -41,7 +43,7 @@ import {
 const key = await generateKey();
 
 // Encrypt the secret
-const { ciphertext, iv } = await encrypt("my secret password", key);
+const { ciphertext, iv, version } = await encrypt("my secret password", key);
 
 // Convert key to base64 for URL
 const keyBase64 = await keyToBase64(key);
@@ -58,7 +60,22 @@ const key = await base64ToKey(fragment);
 
 // Fetch ciphertext from server, decrypt client-side
 const plaintext = await decrypt(ciphertext, iv, key);
+// Or use the EncryptedData object directly:
+// const plaintext = await decrypt(encryptedData, key);
 console.log(plaintext); // "my secret password"
+```
+
+### Payload Size Limits
+
+By default, `encrypt()` limits plaintext to 1MB. Configure with options:
+
+```typescript
+// Custom limit
+const encrypted = await encrypt(largeText, key, { maxBytes: 5 * 1024 * 1024 });
+
+// Check default limit
+import { MAX_PLAINTEXT_BYTES } from "blindrop-crypto";
+console.log(MAX_PLAINTEXT_BYTES); // 1048576 (1MB)
 ```
 
 ### Why URL Fragments?
@@ -157,10 +174,12 @@ end
 | Function | Description |
 |----------|-------------|
 | `generateKey()` | Generate a new AES-256-GCM key |
-| `encrypt(plaintext, key)` | Encrypt string, returns `{ ciphertext, iv }` |
+| `encrypt(plaintext, key, options?)` | Encrypt string, returns `{ version, ciphertext, iv }` |
 | `decrypt(ciphertext, iv, key)` | Decrypt back to string |
+| `decrypt(encryptedData, key)` | Decrypt using EncryptedData object |
 | `keyToBase64(key)` | Export key for URL storage |
 | `base64ToKey(base64)` | Import key from URL |
+| `MAX_PLAINTEXT_BYTES` | Default max payload size (1MB) |
 
 ### Atomic Operations
 
@@ -168,7 +187,35 @@ end
 |--------|-------------|
 | `ATOMIC_DECREMENT_SCRIPT` | Lua script for atomic view counting |
 | `ATOMIC_INCREMENT_WITH_LIMIT_SCRIPT` | Lua script for rate limiting |
-| `parseDecrementResult(result)` | Parse Lua script response |
+| `parseDecrementResult(result)` | Parse decrement script response |
+| `parseIncrementResult(result)` | Parse increment script response |
+
+### Error Classes
+
+All errors extend `CryptoError` for easy catching:
+
+| Error | Thrown When |
+|-------|-------------|
+| `InvalidKeyError` | Key is empty, wrong length, or wrong algorithm |
+| `InvalidBase64Error` | Base64 string is malformed |
+| `InvalidIVError` | IV has incorrect length |
+| `DecryptionError` | Wrong key or tampered ciphertext |
+| `PayloadTooLargeError` | Plaintext exceeds `maxBytes` |
+| `InvalidResultError` | Lua script returned unexpected structure |
+
+```typescript
+import { decrypt, DecryptionError, InvalidKeyError } from "blindrop-crypto";
+
+try {
+  const plaintext = await decrypt(ciphertext, iv, key);
+} catch (error) {
+  if (error instanceof DecryptionError) {
+    console.error("Wrong key or corrupted data");
+  } else if (error instanceof InvalidKeyError) {
+    console.error("Invalid key format");
+  }
+}
+```
 
 ## Browser Support
 
@@ -179,6 +226,13 @@ Requires browsers with [Web Crypto API](https://caniuse.com/cryptography) suppor
 - Edge 12+
 
 For Node.js, requires Node 18+ (native Web Crypto).
+
+## Documentation
+
+- [CHANGELOG](CHANGELOG.md) - Version history
+- [CONTRIBUTING](CONTRIBUTING.md) - Development guidelines
+- [SECURITY](SECURITY.md) - Security policy and vulnerability reporting
+- [Architecture Decision Records](docs/adr/) - Design rationale
 
 ## License
 
