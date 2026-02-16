@@ -22,40 +22,58 @@ export class CryptoError extends Error {
  * Thrown when an encryption key is invalid (wrong length, format, etc.)
  */
 export class InvalidKeyError extends CryptoError {
-  override name = "InvalidKeyError";
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidKeyError";
+  }
 }
 
 /**
  * Thrown when a base64 string is malformed or contains invalid characters
  */
 export class InvalidBase64Error extends CryptoError {
-  override name = "InvalidBase64Error";
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidBase64Error";
+  }
 }
 
 /**
  * Thrown when an initialization vector (IV) is invalid
  */
 export class InvalidIVError extends CryptoError {
-  override name = "InvalidIVError";
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidIVError";
+  }
 }
 
 /**
  * Thrown when decryption fails (wrong key, tampered ciphertext, etc.)
  */
 export class DecryptionError extends CryptoError {
-  override name = "DecryptionError";
+  constructor(message: string) {
+    super(message);
+    this.name = "DecryptionError";
+  }
 }
 
 /**
  * Thrown when plaintext exceeds the maximum allowed size
  */
 export class PayloadTooLargeError extends CryptoError {
-  override name = "PayloadTooLargeError";
+  constructor(message: string) {
+    super(message);
+    this.name = "PayloadTooLargeError";
+  }
 }
 
 /**
  * Thrown when parsing a result fails (invalid structure, missing fields, etc.)
  */
 export class InvalidResultError extends CryptoError {
-  override name = "InvalidResultError";
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidResultError";
+  }
 }

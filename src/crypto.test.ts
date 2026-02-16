@@ -274,6 +274,67 @@ describe("decrypt validation", () => {
     await expect(decrypt(ciphertext, shortIv, key)).rejects.toThrow(InvalidIVError);
     await expect(decrypt(ciphertext, shortIv, key)).rejects.toThrow("Invalid IV length: expected 12 bytes");
   });
+
+  it("accepts EncryptedData object directly", async () => {
+    const key = await generateKey();
+    const plaintext = "test message";
+
+    const encrypted = await encrypt(plaintext, key);
+    const decrypted = await decrypt(encrypted, key);
+
+    expect(decrypted).toBe(plaintext);
+  });
+});
+
+describe("key algorithm validation", () => {
+  it("encrypt rejects non-AES-GCM keys", async () => {
+    const hmacKey = await crypto.subtle.generateKey(
+      { name: "HMAC", hash: "SHA-256" },
+      true,
+      ["sign", "verify"]
+    );
+
+    await expect(encrypt("test", hmacKey)).rejects.toThrow(InvalidKeyError);
+    await expect(encrypt("test", hmacKey)).rejects.toThrow("Invalid key algorithm: expected AES-GCM");
+  });
+
+  it("decrypt rejects non-AES-GCM keys", async () => {
+    const aesKey = await generateKey();
+    const { ciphertext, iv } = await encrypt("test", aesKey);
+
+    const hmacKey = await crypto.subtle.generateKey(
+      { name: "HMAC", hash: "SHA-256" },
+      true,
+      ["sign", "verify"]
+    );
+
+    await expect(decrypt(ciphertext, iv, hmacKey)).rejects.toThrow(InvalidKeyError);
+    await expect(decrypt(ciphertext, iv, hmacKey)).rejects.toThrow("Invalid key algorithm: expected AES-GCM");
+  });
+
+  it("decrypt with EncryptedData rejects non-AES-GCM keys", async () => {
+    const aesKey = await generateKey();
+    const encrypted = await encrypt("test", aesKey);
+
+    const hmacKey = await crypto.subtle.generateKey(
+      { name: "HMAC", hash: "SHA-256" },
+      true,
+      ["sign", "verify"]
+    );
+
+    await expect(decrypt(encrypted, hmacKey)).rejects.toThrow(InvalidKeyError);
+  });
+
+  it("keyToBase64 rejects non-AES-GCM keys", async () => {
+    const hmacKey = await crypto.subtle.generateKey(
+      { name: "HMAC", hash: "SHA-256" },
+      true,
+      ["sign", "verify"]
+    );
+
+    await expect(keyToBase64(hmacKey)).rejects.toThrow(InvalidKeyError);
+    await expect(keyToBase64(hmacKey)).rejects.toThrow("Invalid key algorithm: expected AES-GCM");
+  });
 });
 
 describe("backwards compatibility", () => {

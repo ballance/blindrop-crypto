@@ -77,6 +77,7 @@ export async function generateKey(): Promise<CryptoKey> {
  * @param options - Optional encryption options
  * @returns Base64-encoded ciphertext, IV, and format version
  *
+ * @throws {InvalidKeyError} If key is not an AES-GCM key
  * @throws {PayloadTooLargeError} If plaintext exceeds maximum size
  * @throws {CryptoError} If encryption fails
  */
@@ -85,6 +86,8 @@ export async function encrypt(
   key: CryptoKey,
   options?: EncryptOptions
 ): Promise<EncryptedData> {
+  validateKeyAlgorithm(key);
+
   const maxBytes = options?.maxBytes ?? MAX_PLAINTEXT_BYTES;
   const data = encoder.encode(plaintext);
 
@@ -125,6 +128,7 @@ export async function encrypt(
  * @param key - The decryption key
  * @returns Decrypted plaintext
  *
+ * @throws {InvalidKeyError} If key is not an AES-GCM key
  * @throws {InvalidBase64Error} If ciphertext or IV contains invalid base64
  * @throws {InvalidIVError} If IV has incorrect length
  * @throws {DecryptionError} If decryption fails (wrong key, tampered data, etc.)
@@ -133,7 +137,48 @@ export async function decrypt(
   ciphertext: string,
   iv: string,
   key: CryptoKey
+): Promise<string>;
+
+/**
+ * Decrypt encrypted data using AES-256-GCM
+ *
+ * @param data - The encrypted data object from encrypt()
+ * @param key - The decryption key
+ * @returns Decrypted plaintext
+ *
+ * @throws {InvalidKeyError} If key is not an AES-GCM key
+ * @throws {InvalidBase64Error} If ciphertext or IV contains invalid base64
+ * @throws {InvalidIVError} If IV has incorrect length
+ * @throws {DecryptionError} If decryption fails (wrong key, tampered data, etc.)
+ */
+export async function decrypt(
+  data: EncryptedData,
+  key: CryptoKey
+): Promise<string>;
+
+export async function decrypt(
+  ciphertextOrData: string | EncryptedData,
+  ivOrKey: string | CryptoKey,
+  keyOrUndefined?: CryptoKey
 ): Promise<string> {
+  let ciphertext: string;
+  let iv: string;
+  let key: CryptoKey;
+
+  if (typeof ciphertextOrData === "object") {
+    // Overload: decrypt(data, key)
+    ciphertext = ciphertextOrData.ciphertext;
+    iv = ciphertextOrData.iv;
+    key = ivOrKey as CryptoKey;
+  } else {
+    // Overload: decrypt(ciphertext, iv, key)
+    ciphertext = ciphertextOrData;
+    iv = ivOrKey as string;
+    key = keyOrUndefined as CryptoKey;
+  }
+
+  validateKeyAlgorithm(key);
+
   const ciphertextArray = base64UrlToBuffer(ciphertext);
   const ivArray = base64UrlToBuffer(iv);
 
@@ -165,9 +210,11 @@ export async function decrypt(
  * @param key - The CryptoKey to export
  * @returns URL-safe Base64 string representation of the key
  *
+ * @throws {InvalidKeyError} If key is not an AES-GCM key
  * @throws {CryptoError} If key export fails
  */
 export async function keyToBase64(key: CryptoKey): Promise<string> {
+  validateKeyAlgorithm(key);
   const exported = await crypto.subtle.exportKey("raw", key);
   return bufferToBase64Url(exported);
 }
@@ -202,6 +249,19 @@ export async function base64ToKey(base64: string): Promise<CryptoKey> {
     true,
     ["encrypt", "decrypt"]
   );
+}
+
+/**
+ * Validate that a CryptoKey is an AES-GCM key
+ *
+ * @throws {InvalidKeyError} If key is not an AES-GCM key
+ */
+function validateKeyAlgorithm(key: CryptoKey): void {
+  if (key.algorithm.name !== ALGORITHM) {
+    throw new InvalidKeyError(
+      `Invalid key algorithm: expected ${ALGORITHM}, got ${key.algorithm.name}`
+    );
+  }
 }
 
 /**
